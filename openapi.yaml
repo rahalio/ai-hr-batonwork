@@ -1,0 +1,1690 @@
+openapi: 3.0.3
+info:
+  title: Batonwork
+  version: 0.1.0
+  description: >-
+    Task-absorption and redeployment record for augmented jobs. Batonwork reconciles
+    automation telemetry with worker confirmation into dated absorption events, credits
+    the reclaimed hours to a role capacity ledger, forces an explicit allocation of that
+    capacity, and carries the handover into development routes and redeployment offers
+    under adverse-impact testing, consultation and algorithmic-transparency duties.
+  x-product-slug: ai-hr-batonwork
+  x-source: ai-in-hr/Accenture-8343-HOW-IS-AI-HELPING-Transcript-Stg1-NG/
+servers:
+  - url: https://api.example.com
+tags:
+  - name: Roles
+    description: Roles and their task profiles
+  - name: Absorption
+    description: Automation deployments, absorption events, and worker confirmation
+  - name: Capacity
+    description: Reclaimed capacity ledger, allocations, and work composition
+  - name: Handover
+    description: Threshold-triggered handovers and development routes
+  - name: Redeployment
+    description: Internal mobility offers, trials, and outcomes
+  - name: Fairness
+    description: Selection pools and adverse impact testing
+  - name: Consultation
+    description: Works council and employee representative consultation packs
+  - name: Transparency
+    description: Algorithmic allocation disclosures and worker objections
+  - name: Reporting
+    description: Business case reconciliation and absorption reporting
+paths:
+  /v1/roles:
+    get:
+      operationId: listRoles
+      tags: [Roles]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: function
+          in: query
+          schema:
+            type: string
+        - name: augmentationState
+          in: query
+          schema:
+            type: string
+            enum: [not_augmented, instrumented, partially_absorbed, majority_absorbed]
+      responses:
+        "200":
+          description: Roles page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeRole"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createRole
+      tags: [Roles]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleCreate"
+      responses:
+        "201":
+          description: Role registered for instrumentation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeRole"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+  /v1/roles/{roleId}/task-profile:
+    parameters:
+      - $ref: "#/components/parameters/RoleId"
+    get:
+      operationId: getTaskProfile
+      tags: [Roles]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current task profile with evidenced time distribution
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeTaskProfile"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      operationId: replaceTaskProfile
+      tags: [Roles]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskProfileUpsert"
+      responses:
+        "200":
+          description: Task profile version created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeTaskProfile"
+  /v1/automation-deployments:
+    get:
+      operationId: listAutomationDeployments
+      tags: [Absorption]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Automation deployments page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeAutomationDeployment"
+    post:
+      operationId: registerAutomationDeployment
+      tags: [Absorption]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AutomationDeploymentCreate"
+      responses:
+        "201":
+          description: Deployment registered with its promised hours claim
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeAutomationDeployment"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+  /v1/absorption-events:
+    get:
+      operationId: listAbsorptionEvents
+      tags: [Absorption]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: roleId
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [detected, confirmed, disputed, withdrawn]
+      responses:
+        "200":
+          description: Absorption events page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeAbsorptionEvent"
+    post:
+      operationId: recordAbsorptionEvent
+      tags: [Absorption]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AbsorptionEventCreate"
+      responses:
+        "201":
+          description: Absorption detected and awaiting confirmation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeAbsorptionEvent"
+        "409":
+          description: An open absorption event already exists for this task and period
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /v1/absorption-events/{eventId}/confirmation:
+    parameters:
+      - $ref: "#/components/parameters/EventId"
+    post:
+      operationId: confirmAbsorptionEvent
+      tags: [Absorption]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkerConfirmation"
+      responses:
+        "200":
+          description: Confirmation or dispute recorded against the event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeAbsorptionEvent"
+        "403":
+          description: Caller may only confirm their own task record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /v1/roles/{roleId}/capacity-ledger:
+    parameters:
+      - $ref: "#/components/parameters/RoleId"
+    get:
+      operationId: getCapacityLedger
+      tags: [Capacity]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            example: 2026-Q3
+      responses:
+        "200":
+          description: Credited, allocated and ageing unallocated hours for the role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeCapacityLedger"
+  /v1/capacity-allocations:
+    post:
+      operationId: allocateReclaimedCapacity
+      tags: [Capacity]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AllocationDecisionCreate"
+      responses:
+        "201":
+          description: Allocation decision recorded against credited hours
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeAllocationDecision"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+  /v1/roles/{roleId}/work-composition:
+    parameters:
+      - $ref: "#/components/parameters/RoleId"
+    get:
+      operationId: getWorkComposition
+      tags: [Capacity]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Judgment, relationship, routine and data-preparation shares over time
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeWorkComposition"
+  /v1/handovers:
+    get:
+      operationId: listHandovers
+      tags: [Handover]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, route_agreed, in_progress, completed, overdue, closed_no_route]
+      responses:
+        "200":
+          description: Handovers page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeHandover"
+    post:
+      operationId: openHandover
+      tags: [Handover]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HandoverCreate"
+      responses:
+        "201":
+          description: Handover opened with owner and deadline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeHandover"
+  /v1/handovers/{handoverId}/development-route:
+    parameters:
+      - $ref: "#/components/parameters/HandoverId"
+    put:
+      operationId: agreeDevelopmentRoute
+      tags: [Handover]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevelopmentRoute"
+      responses:
+        "200":
+          description: Development route agreed and pushed to the learning system
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeDevelopmentRoute"
+  /v1/redeployment-offers:
+    get:
+      operationId: listRedeploymentOffers
+      tags: [Redeployment]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [proposed, offered, trial, accepted, declined, withdrawn]
+      responses:
+        "200":
+          description: Redeployment offers page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeRedeploymentOffer"
+    post:
+      operationId: createRedeploymentOffer
+      tags: [Redeployment]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RedeploymentOfferCreate"
+      responses:
+        "201":
+          description: Offer recorded against the suitable alternative employment duty
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeRedeploymentOffer"
+  /v1/redeployment-offers/{offerId}/response:
+    parameters:
+      - $ref: "#/components/parameters/OfferId"
+    post:
+      operationId: respondToRedeploymentOffer
+      tags: [Redeployment]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome]
+              properties:
+                outcome:
+                  type: string
+                  enum: [accepted, declined, trial_requested]
+                reason:
+                  type: string
+                trialEndsOn:
+                  type: string
+                  format: date
+      responses:
+        "200":
+          description: Worker response recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeRedeploymentOffer"
+  /v1/selection-pools:
+    post:
+      operationId: createSelectionPool
+      tags: [Fairness]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SelectionPoolCreate"
+      responses:
+        "201":
+          description: Selection pool created in untested state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeSelectionPool"
+  /v1/selection-pools/{poolId}/fairness-test:
+    parameters:
+      - $ref: "#/components/parameters/PoolId"
+    post:
+      operationId: runFairnessTest
+      tags: [Fairness]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [characteristics]
+              properties:
+                characteristics:
+                  type: array
+                  items:
+                    type: string
+                    enum: [age_band, sex, disability, ethnicity, part_time_status, tenure_band]
+                minimumGroupSize:
+                  type: integer
+                  default: 10
+      responses:
+        "200":
+          description: Adverse impact result blocking or clearing communication
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeFairnessTest"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+  /v1/consultation-packs:
+    get:
+      operationId: listConsultationPacks
+      tags: [Consultation]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: jurisdiction
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Consultation packs page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeConsultationPack"
+    post:
+      operationId: generateConsultationPack
+      tags: [Consultation]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConsultationPackRequest"
+      responses:
+        "201":
+          description: Pack generated from live absorption and allocation records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeConsultationPack"
+  /v1/transparency-disclosures:
+    get:
+      operationId: listTransparencyDisclosures
+      tags: [Transparency]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: roleId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Plain-language disclosures of automated allocation rules
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeTransparencyDisclosure"
+    post:
+      operationId: publishTransparencyDisclosure
+      tags: [Transparency]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransparencyDisclosure"
+      responses:
+        "201":
+          description: Disclosure published to affected workers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeTransparencyDisclosure"
+  /v1/objections:
+    get:
+      operationId: listObjections
+      tags: [Transparency]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, under_review, upheld, rejected, expired]
+      responses:
+        "200":
+          description: Objections page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEnvelopeObjectionCase"
+    post:
+      operationId: lodgeObjection
+      tags: [Transparency]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ObjectionCaseCreate"
+      responses:
+        "201":
+          description: Objection lodged with a resolution deadline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeObjectionCase"
+  /v1/objections/{objectionId}/resolution:
+    parameters:
+      - $ref: "#/components/parameters/ObjectionId"
+    post:
+      operationId: resolveObjection
+      tags: [Transparency]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome, rationale]
+              properties:
+                outcome:
+                  type: string
+                  enum: [upheld, rejected, partial]
+                rationale:
+                  type: string
+                recordCorrected:
+                  type: boolean
+      responses:
+        "200":
+          description: Objection resolved with recorded rationale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeObjectionCase"
+  /v1/reports/business-case-reconciliation:
+    get:
+      operationId: getBusinessCaseReconciliation
+      tags: [Reporting]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: deploymentId
+          in: query
+          schema:
+            type: string
+        - name: period
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Promised versus measured reclaimed hours with variance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeBusinessCaseReconciliation"
+  /v1/reports/absorption-summary:
+    get:
+      operationId: getAbsorptionSummary
+      tags: [Reporting]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: function
+          in: query
+          schema:
+            type: string
+        - name: period
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Function-level absorption, allocation and redeployment outcomes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataEnvelopeAbsorptionSummary"
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    RoleId:
+      name: roleId
+      in: path
+      required: true
+      schema:
+        type: string
+    EventId:
+      name: eventId
+      in: path
+      required: true
+      schema:
+        type: string
+    HandoverId:
+      name: handoverId
+      in: path
+      required: true
+      schema:
+        type: string
+    OfferId:
+      name: offerId
+      in: path
+      required: true
+      schema:
+        type: string
+    PoolId:
+      name: poolId
+      in: path
+      required: true
+      schema:
+        type: string
+    ObjectionId:
+      name: objectionId
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: Missing or invalid credentials
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    UnprocessableEntity:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+  schemas:
+    ResponseMeta:
+      type: object
+      required: [requestId, timestamp]
+      properties:
+        requestId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+    Hours:
+      type: object
+      required: [value, basis]
+      properties:
+        value:
+          type: number
+          format: double
+        basis:
+          type: string
+          enum: [per_week_per_fte, per_month_per_fte, per_quarter_total]
+    Role:
+      type: object
+      required: [id, title, function, jurisdiction, augmentationState]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        function:
+          type: string
+        jurisdiction:
+          type: string
+          description: Drives consultation triggers and retention rules
+        headcount:
+          type: integer
+        augmentationState:
+          type: string
+          enum: [not_augmented, instrumented, partially_absorbed, majority_absorbed]
+        representationBody:
+          type: string
+          description: Works council or employee representative body with information rights
+    RoleCreate:
+      type: object
+      required: [title, function, jurisdiction]
+      properties:
+        title:
+          type: string
+        function:
+          type: string
+        jurisdiction:
+          type: string
+        headcount:
+          type: integer
+        representationBody:
+          type: string
+    Task:
+      type: object
+      required: [id, name, category, hoursBefore]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+          enum: [routine, judgment, relationship, data_preparation, supervisory]
+        hoursBefore:
+          $ref: "#/components/schemas/Hours"
+        hoursNow:
+          $ref: "#/components/schemas/Hours"
+        evidenceSource:
+          type: string
+          enum: [telemetry, worker_confirmation, both, estimate]
+    TaskProfile:
+      type: object
+      required: [roleId, version, tasks, effectiveFrom]
+      properties:
+        roleId:
+          type: string
+        version:
+          type: integer
+        effectiveFrom:
+          type: string
+          format: date
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+        confirmedByWorkerShare:
+          type: number
+          format: float
+          description: Share of role population that has confirmed this profile
+    TaskProfileUpsert:
+      type: object
+      required: [tasks, effectiveFrom]
+      properties:
+        effectiveFrom:
+          type: string
+          format: date
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+    AutomationDeployment:
+      type: object
+      required: [id, name, affectedRoleIds, goLiveDate, promisedHours]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        vendorOrPlatform:
+          type: string
+        affectedRoleIds:
+          type: array
+          items:
+            type: string
+        goLiveDate:
+          type: string
+          format: date
+        promisedHours:
+          $ref: "#/components/schemas/Hours"
+        businessCaseReference:
+          type: string
+        consultationRequired:
+          type: boolean
+    AutomationDeploymentCreate:
+      type: object
+      required: [name, affectedRoleIds, goLiveDate, promisedHours]
+      properties:
+        name:
+          type: string
+        vendorOrPlatform:
+          type: string
+        affectedRoleIds:
+          type: array
+          items:
+            type: string
+        goLiveDate:
+          type: string
+          format: date
+        promisedHours:
+          $ref: "#/components/schemas/Hours"
+        businessCaseReference:
+          type: string
+    TelemetrySignal:
+      type: object
+      required: [source, metric, value, period]
+      properties:
+        source:
+          type: string
+          enum: [aiops, contact_centre, ticketing, core_process, assistant]
+        metric:
+          type: string
+          enum: [deflection_rate, auto_remediation_rate, straight_through_rate, handling_time]
+        value:
+          type: number
+          format: double
+        period:
+          type: string
+    AbsorptionEvent:
+      type: object
+      required: [id, roleId, taskId, status, detectedOn]
+      properties:
+        id:
+          type: string
+        roleId:
+          type: string
+        taskId:
+          type: string
+        deploymentId:
+          type: string
+        status:
+          type: string
+          enum: [detected, confirmed, disputed, withdrawn]
+        detectedOn:
+          type: string
+          format: date
+        hoursReclaimed:
+          $ref: "#/components/schemas/Hours"
+        telemetry:
+          type: array
+          items:
+            $ref: "#/components/schemas/TelemetrySignal"
+        confirmationCount:
+          type: integer
+        disputeNote:
+          type: string
+    AbsorptionEventCreate:
+      type: object
+      required: [roleId, taskId, hoursReclaimed]
+      properties:
+        roleId:
+          type: string
+        taskId:
+          type: string
+        deploymentId:
+          type: string
+        hoursReclaimed:
+          $ref: "#/components/schemas/Hours"
+        telemetry:
+          type: array
+          items:
+            $ref: "#/components/schemas/TelemetrySignal"
+    WorkerConfirmation:
+      type: object
+      required: [position]
+      properties:
+        position:
+          type: string
+          enum: [confirms, disputes, partially_confirms]
+        statedHoursReclaimed:
+          $ref: "#/components/schemas/Hours"
+        note:
+          type: string
+        submittedByWorkerRef:
+          type: string
+          description: Pseudonymous worker key, never a payroll identifier
+    CapacityLedgerEntry:
+      type: object
+      required: [id, roleId, period, direction, hours]
+      properties:
+        id:
+          type: string
+        roleId:
+          type: string
+        period:
+          type: string
+        direction:
+          type: string
+          enum: [credit, debit]
+        hours:
+          $ref: "#/components/schemas/Hours"
+        sourceAbsorptionEventId:
+          type: string
+        allocationDecisionId:
+          type: string
+    CapacityLedger:
+      type: object
+      required: [roleId, period, creditedHours, allocatedHours, unallocatedHours]
+      properties:
+        roleId:
+          type: string
+        period:
+          type: string
+        creditedHours:
+          $ref: "#/components/schemas/Hours"
+        allocatedHours:
+          $ref: "#/components/schemas/Hours"
+        unallocatedHours:
+          $ref: "#/components/schemas/Hours"
+        unallocatedAgeDays:
+          type: integer
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/CapacityLedgerEntry"
+    AllocationDecision:
+      type: object
+      required: [id, roleId, destination, hours, decidedBy, decidedOn]
+      properties:
+        id:
+          type: string
+        roleId:
+          type: string
+        destination:
+          type: string
+          enum: [judgment_work, relationship_work, protected_learning_time, demand_absorption, headcount_reduction]
+        hours:
+          $ref: "#/components/schemas/Hours"
+        decidedBy:
+          type: string
+        decidedOn:
+          type: string
+          format: date
+        rationale:
+          type: string
+        consultationPackId:
+          type: string
+          description: Required when destination is headcount_reduction in a consultation jurisdiction
+    AllocationDecisionCreate:
+      type: object
+      required: [roleId, destination, hours]
+      properties:
+        roleId:
+          type: string
+        destination:
+          type: string
+          enum: [judgment_work, relationship_work, protected_learning_time, demand_absorption, headcount_reduction]
+        hours:
+          $ref: "#/components/schemas/Hours"
+        rationale:
+          type: string
+    WorkComposition:
+      type: object
+      required: [roleId, period, shares]
+      properties:
+        roleId:
+          type: string
+        period:
+          type: string
+        shares:
+          type: object
+          properties:
+            routine:
+              type: number
+              format: float
+            judgment:
+              type: number
+              format: float
+            relationship:
+              type: number
+              format: float
+            dataPreparation:
+              type: number
+              format: float
+        dataPreparationBaseline:
+          type: number
+          format: float
+          description: Baseline share used to track the source claim of 70 to 80 percent data cleaning
+        relationshipShareChange:
+          type: number
+          format: float
+    SkillGap:
+      type: object
+      required: [skill, currentLevel, requiredLevel]
+      properties:
+        skill:
+          type: string
+        currentLevel:
+          type: string
+          enum: [none, aware, working, proficient, expert]
+        requiredLevel:
+          type: string
+          enum: [aware, working, proficient, expert]
+        evidence:
+          type: string
+    Handover:
+      type: object
+      required: [id, roleId, workerRef, status, openedOn, dueOn, ownerRef]
+      properties:
+        id:
+          type: string
+        roleId:
+          type: string
+        workerRef:
+          type: string
+        status:
+          type: string
+          enum: [open, route_agreed, in_progress, completed, overdue, closed_no_route]
+        openedOn:
+          type: string
+          format: date
+        dueOn:
+          type: string
+          format: date
+        ownerRef:
+          type: string
+        triggerAbsorptionShare:
+          type: number
+          format: float
+        closureReason:
+          type: string
+    HandoverCreate:
+      type: object
+      required: [roleId, workerRef, ownerRef, dueOn]
+      properties:
+        roleId:
+          type: string
+        workerRef:
+          type: string
+        ownerRef:
+          type: string
+        dueOn:
+          type: string
+          format: date
+        triggerAbsorptionShare:
+          type: number
+          format: float
+    DevelopmentRoute:
+      type: object
+      required: [handoverId, targetRoleFamily, gaps, learningCommitmentHours]
+      properties:
+        handoverId:
+          type: string
+        targetRoleFamily:
+          type: string
+        gaps:
+          type: array
+          items:
+            $ref: "#/components/schemas/SkillGap"
+        learningCommitmentHours:
+          $ref: "#/components/schemas/Hours"
+        protectedTimeAgreed:
+          type: boolean
+        learningSystemReference:
+          type: string
+        completionTarget:
+          type: string
+          format: date
+    RedeploymentOffer:
+      type: object
+      required: [id, workerRef, fromRoleId, toRoleId, status, offeredOn]
+      properties:
+        id:
+          type: string
+        workerRef:
+          type: string
+        fromRoleId:
+          type: string
+        toRoleId:
+          type: string
+        status:
+          type: string
+          enum: [proposed, offered, trial, accepted, declined, withdrawn]
+        offeredOn:
+          type: string
+          format: date
+        taskOverlapScore:
+          type: number
+          format: float
+        suitableAlternativeEmployment:
+          type: boolean
+        trialEndsOn:
+          type: string
+          format: date
+        declineReason:
+          type: string
+    RedeploymentOfferCreate:
+      type: object
+      required: [workerRef, fromRoleId, toRoleId]
+      properties:
+        workerRef:
+          type: string
+        fromRoleId:
+          type: string
+        toRoleId:
+          type: string
+        taskOverlapScore:
+          type: number
+          format: float
+        suitableAlternativeEmployment:
+          type: boolean
+    SelectionPool:
+      type: object
+      required: [id, roleId, purpose, memberCount, testState]
+      properties:
+        id:
+          type: string
+        roleId:
+          type: string
+        purpose:
+          type: string
+          enum: [redeployment_priority, retention, redundancy_selection]
+        memberCount:
+          type: integer
+        criteria:
+          type: array
+          items:
+            type: string
+        testState:
+          type: string
+          enum: [untested, cleared, blocked]
+    SelectionPoolCreate:
+      type: object
+      required: [roleId, purpose, criteria]
+      properties:
+        roleId:
+          type: string
+        purpose:
+          type: string
+          enum: [redeployment_priority, retention, redundancy_selection]
+        criteria:
+          type: array
+          items:
+            type: string
+        memberRefs:
+          type: array
+          items:
+            type: string
+    FairnessTest:
+      type: object
+      required: [poolId, ranOn, outcome, findings]
+      properties:
+        poolId:
+          type: string
+        ranOn:
+          type: string
+          format: date-time
+        outcome:
+          type: string
+          enum: [cleared, adverse_impact_detected, insufficient_group_size]
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              characteristic:
+                type: string
+              selectionRateRatio:
+                type: number
+                format: float
+              groupSize:
+                type: integer
+              flagged:
+                type: boolean
+        communicationBlocked:
+          type: boolean
+        reviewerRef:
+          type: string
+    ConsultationPack:
+      type: object
+      required: [id, jurisdiction, scope, status, generatedOn]
+      properties:
+        id:
+          type: string
+        jurisdiction:
+          type: string
+        scope:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [draft, issued, in_consultation, concluded, disputed]
+        generatedOn:
+          type: string
+          format: date
+        affectedHeadcount:
+          type: integer
+        taskChangeSummary:
+          type: string
+        trainingPlanSummary:
+          type: string
+        timetable:
+          type: array
+          items:
+            type: object
+            properties:
+              milestone:
+                type: string
+              date:
+                type: string
+                format: date
+        version:
+          type: integer
+    ConsultationPackRequest:
+      type: object
+      required: [jurisdiction, roleIds]
+      properties:
+        jurisdiction:
+          type: string
+        roleIds:
+          type: array
+          items:
+            type: string
+        deploymentId:
+          type: string
+        includeAllocationDecisions:
+          type: boolean
+          default: true
+    TransparencyDisclosure:
+      type: object
+      required: [ruleName, roleIds, plainLanguageSummary, effectFrom]
+      properties:
+        id:
+          type: string
+        ruleName:
+          type: string
+        roleIds:
+          type: array
+          items:
+            type: string
+        plainLanguageSummary:
+          type: string
+        decisionType:
+          type: string
+          enum: [work_allocation, prioritisation, deflection, escalation]
+        humanOverridePath:
+          type: string
+        effectFrom:
+          type: string
+          format: date
+        challengeServiceDays:
+          type: integer
+    ObjectionCase:
+      type: object
+      required: [id, subject, status, lodgedOn, resolutionDueOn]
+      properties:
+        id:
+          type: string
+        subject:
+          type: string
+          enum: [absorption_record, allocation_decision, selection_reason, allocation_rule, redeployment_offer]
+        subjectId:
+          type: string
+        raisedByRef:
+          type: string
+        representedBy:
+          type: string
+          description: Employee representative acting for the worker, where applicable
+        status:
+          type: string
+          enum: [open, under_review, upheld, rejected, expired]
+        lodgedOn:
+          type: string
+          format: date
+        resolutionDueOn:
+          type: string
+          format: date
+        outcomeRationale:
+          type: string
+    ObjectionCaseCreate:
+      type: object
+      required: [subject, subjectId, groundsSummary]
+      properties:
+        subject:
+          type: string
+          enum: [absorption_record, allocation_decision, selection_reason, allocation_rule, redeployment_offer]
+        subjectId:
+          type: string
+        groundsSummary:
+          type: string
+        raisedByRef:
+          type: string
+        representedBy:
+          type: string
+    BusinessCaseReconciliation:
+      type: object
+      required: [deploymentId, period, promisedHours, measuredHours]
+      properties:
+        deploymentId:
+          type: string
+        period:
+          type: string
+        promisedHours:
+          $ref: "#/components/schemas/Hours"
+        measuredHours:
+          $ref: "#/components/schemas/Hours"
+        variancePercent:
+          type: number
+          format: float
+        confirmedShareOfMeasured:
+          type: number
+          format: float
+        allocatedShareOfMeasured:
+          type: number
+          format: float
+    AbsorptionSummary:
+      type: object
+      required: [scope, period]
+      properties:
+        scope:
+          type: string
+        period:
+          type: string
+        rolesInstrumented:
+          type: integer
+        confirmedAbsorptionEvents:
+          type: integer
+        disputedAbsorptionEvents:
+          type: integer
+        hoursCredited:
+          $ref: "#/components/schemas/Hours"
+        hoursAllocatedToHumanWork:
+          $ref: "#/components/schemas/Hours"
+        hoursUnallocatedAged:
+          $ref: "#/components/schemas/Hours"
+        redeploymentsAccepted:
+          type: integer
+        redundancyProposals:
+          type: integer
+        handoversOverdue:
+          type: integer
+    DataEnvelopeRole:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/Role"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeTaskProfile:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/TaskProfile"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeAutomationDeployment:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/AutomationDeployment"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeAbsorptionEvent:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/AbsorptionEvent"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeCapacityLedger:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/CapacityLedger"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeAllocationDecision:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/AllocationDecision"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeWorkComposition:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/WorkComposition"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeHandover:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/Handover"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeDevelopmentRoute:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/DevelopmentRoute"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeRedeploymentOffer:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/RedeploymentOffer"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeSelectionPool:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/SelectionPool"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeFairnessTest:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/FairnessTest"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeConsultationPack:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/ConsultationPack"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeTransparencyDisclosure:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/TransparencyDisclosure"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeObjectionCase:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/ObjectionCase"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeBusinessCaseReconciliation:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/BusinessCaseReconciliation"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    DataEnvelopeAbsorptionSummary:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/AbsorptionSummary"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeRole:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Role"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeAutomationDeployment:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/AutomationDeployment"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeAbsorptionEvent:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/AbsorptionEvent"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeHandover:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Handover"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeRedeploymentOffer:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/RedeploymentOffer"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeConsultationPack:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ConsultationPack"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeTransparencyDisclosure:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/TransparencyDisclosure"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+    ListEnvelopeObjectionCase:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ObjectionCase"
+            nextCursor:
+              type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
